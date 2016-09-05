@@ -71,7 +71,7 @@ function GetLine($Stib, $client, $line)
     echo '<table data-role="table" data-mode="columntoggle" class="ui-responsive" id="myTable">
   <thead>
     <tr>';
-        echo '<th>LineID</th>';
+        echo '<th>Direction</th>';
         echo '<th data-priority="1">LineDirection</th>';
         echo '<th data-priority="2">LineName</th>';
         echo '</tr>
@@ -81,12 +81,69 @@ function GetLine($Stib, $client, $line)
         foreach ($currentline->directions as $key => $value)
             {
                 echo '<tr>';
-                echo "<td><a href='#' onclick = 'ajaxFunction()' id='".$currentline->id."' class='".$currentline->id."'>".$currentline->id."</a></td>";
+                echo "<td><a href='#' onclick = 'GetStops(".$currentline->id.", ".$value.")' id='".$currentline->id."' class='".$currentline->id."'>".$value."</a></td>";
                 echo "<td>".$key."</td>";
                 echo "<td>".$currentline->name."</td>";
                 echo '</tr>';
             }
 
+        echo '</tbody>
+        </table>';
+}
+function GetStops($Stib, $client, $line, $direction)
+{
+    echo '<table data-role="table" data-mode="columntoggle" class="ui-responsive" id="myTable">
+  <thead>
+    <tr>';
+        echo '<th>Stop name</th>';
+        echo '<th data-priority="1">Line</th>';
+        echo '<th data-priority="2">StopID</th>';
+        echo '</tr>
+    </thead>
+    <tbody>';
+        $Stops = $Stib->GetDirection($client, $line, $direction);
+//        echo '<pre>';print_r($Stops->line);print '</pre>';
+        foreach ($Stops->line['stops'] as $stop)
+            {
+                echo '<tr>';
+                echo "<td><a href='#' onclick = 'GetStop(".$stop['id'].", \"".$stop['name']."\")' id='".$stop['id']."' class='".$stop['id']."'>".$stop['name']."</a></td>";
+                echo "<td>".$line."</td>";
+                echo "<td>".$stop['id']."</td>";
+                echo '</tr>';
+
+            }
+        echo '</tbody>
+        </table>';
+}
+
+function GetTime($Stib, $client, $StopID, $StopName)
+{
+    echo "<button onclick = 'GetStop(".$StopID.", \"".$StopName."\")'>Reload</button>";
+    echo '<table data-role="table" data-mode="columntoggle" class="ui-responsive" id="myTable">
+  <thead>
+    <tr>';
+        echo '<th>Destination</th>';
+        echo '<th data-priority="1">Minutes</th>';
+        echo '<th data-priority="2">Line</th>';
+        echo '<th>Schedule</th>';
+        echo '<th>Stop</th>';
+        echo '</tr>
+    </thead>
+    <tbody>';
+        $time = $Stib->GetStop ($client, $StopID, $StopName);
+        echo '<pre>';print_r($time);print '</pre>';
+        foreach ($time->results as $stop)
+            {
+                echo '<tr>';
+                echo "<td>".$stop['destination']."</td>";
+                echo "<td>".$stop['minutes']."</td>";
+                echo "<td>".$stop['line']."</td>";
+                $schedule = date('G:i', strtotime($stop['when']));
+                echo "<td>".$schedule."</td>";
+                echo "<td>".$time->name."</td>";
+                echo '</tr>';
+
+            }
         echo '</tbody>
         </table>';
 }
@@ -100,6 +157,18 @@ function GetLine($Stib, $client, $line)
             }});
 
     }
+function GetStops(line, direction){
+
+    $.ajax({url: "index.php?GetStops=1&LineNumber="+line+"&Direction="+direction, success: function(result){
+            $("#presentation").html(result);
+        }});
+}
+function GetStop(stopid, stopname){
+
+    $.ajax({url: "index.php?GetStop=1&StopID="+stopid+"&StopName="+stopname, success: function(result){
+            $("#presentation").html(result);
+        }});
+}
 
 </script>
 <div id='presentation' name="presentation">
@@ -108,10 +177,18 @@ function GetLine($Stib, $client, $line)
         {
             GetLine($Stib, $client, $_GET['LineNumber']);
         }
-    else
-        {
-            PresentLines($Stib, $client);
-        }
+elseif (isset($_GET['GetStops']) && isset($_GET['LineNumber']) && isset($_GET['Direction']))
+    {
+        GetStops($Stib, $client, $_GET['LineNumber'], $_GET['Direction']);
+    }
+elseif (isset($_GET['GetStop']) && isset($_GET['StopID']) && isset($_GET['StopName']))
+    {
+        GetTime($Stib, $client, $_GET['StopID'], $_GET['StopName']);
+    }
+else
+    {
+        PresentLines($Stib, $client);
+    }
 ?>
 </div>
 </body>
